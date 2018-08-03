@@ -93,7 +93,31 @@ def run_exercise():
     complaints_in_top_zipcodes_df = ten_largest_zipcodes_df.merge(filtered_top_complaint_df[['complaint_type','incident_zip']], on='incident_zip')
     #now get the aggegate count of complaint type for each of the 10 zipcodes
     complaints_in_top_zipcodes_agg_df = complaints_in_top_zipcodes_df.groupby(['incident_zip', 'complaint_type']).count()
+    print 'Show Top 10 Complaints in the top 10 zipcodes'
     print complaints_in_top_zipcodes_agg_df.head()
+
+
+    #Problem 3
+    #Considering all complaint types. Which boroughs are the biggest "complainers" relative to the size of the population in 2017?
+    #Meaning, calculate a complaint-index that adjusts for population of the borough.
+
+    #get borough population information for 2010 from a previously downloaded file
+    borough_pop_df = pd.read_csv('New_York_City_Population_By_Neighborhood_Tabulation_Areas.csv')
+    borough_pop_df = borough_pop_df[borough_pop_df['Year'] == 2010]
+
+    #convert the boroughs to uppercase
+    borough_pop_df['Borough'] = map(lambda x: x.upper(), borough_pop_df['Borough'])
+    #now aggregate across all areas of each borough to get total population per borough
+    aggregate_borough_pop_df = borough_pop_df.groupby(['Borough'])['Population'].sum().reset_index()
+
+    #count the complaints per borough from the full list of complaints in to a new dataframe
+    aggregate_borough_complaint_df = full_df.groupby(['borough'])[':id'].count().reset_index().rename(columns={'borough': 'Borough', ':id':'Complaints'})
+    #now merge the borough complaint set with the population set so we have both at once
+    full_borough_df = aggregate_borough_pop_df.merge(aggregate_borough_complaint_df[['Complaints','Borough']], on='Borough')
+    #now calculate the complaint index as the number of complaints per person in each borough
+    full_borough_df['Complaint_Index'] = full_borough_df['Complaints'] / full_borough_df['Population']
+    print 'Show complaints per person for each borough'
+    print full_borough_df.head()
 
 if __name__ == "__main__":
     run_exercise()
