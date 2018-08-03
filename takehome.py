@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 from timeit import default_timer as timer
 
+
 def run_exercise():
     """
     Gather data from freely available sets to compute NYC complaint data per borough and per zipcode
@@ -26,7 +27,7 @@ def run_exercise():
     while True:
         #retrieve data in chunks using json api as it lets us filter out years and select only certain columms
         url_base = 'https://data.cityofnewyork.us/resource/fhrw-4uyv.json?$limit=%s&$offset=%s' % (chunk_size,offset)
-        select_clause = '$select=created_date,complaint_type,incident_zip,borough'
+        select_clause = '$select=:id,created_date,complaint_type,incident_zip,borough'
         #create a filter to get only 2017 data
         where_clause = '$where=' + urllib.quote("created_date between '2017-01-01T00:00:00' and '2017-12-31T23:59:59'")
         #create the full url
@@ -37,17 +38,35 @@ def run_exercise():
 
         #load the data in to a data frame and append it to the full one
         current_df = pd.read_json(result.text, dtype=column_types)
+        data_read = current_df.shape[0]
+
+        #remove rows with unspecified boroughs
+        current_df = current_df[current_df.borough != 'Unspecified']
+        #now add to the full one
         full_df = pd.concat([full_df,current_df])
 
-        data_read = current_df.shape[0]
+        #now increase the offset and exit if we read less than the full amount
         offset += chunk_size
-
         if data_read < chunk_size:
             break
 
     end = timer()
     print 'Total read', full_df.shape[0]
     print 'Elapsed', (end-start)
+
+
+    #Problem 1
+    #Consider only the 10 most common overall complaint types. For each borough, how many of each of those 10 types were there in 2017?
+
+    #get the top 10 complaints by type in a list
+    complaint_counts = full_df.groupby(['complaint_type'])[':id'].agg('count')
+    top_complaints = complaint_counts.nlargest(10).to_dict().keys()
+
+    #now use the top 10 complaints to filter the main list
+    filtered_top_complaint_df = full_df[full_df['complaint_type'].isin(top_complaints)]
+    #now get the top complaints per borough
+    borough_top_complaint_df = filtered_top_complaint_df.groupby(['borough','complaint_type'])[':id'].agg('count')
+    print borough_top_complaint_df.head()
 
 if __name__ == "__main__":
     run_exercise()
