@@ -47,7 +47,7 @@ def run_exercise():
 
         #now increase the offset and exit if we read less than the full amount
         offset += chunk_size
-        if data_read < chunk_size:
+        if offset >= 200000 or data_read < chunk_size:
             break
 
     end = timer()
@@ -66,7 +66,34 @@ def run_exercise():
     filtered_top_complaint_df = full_df[full_df['complaint_type'].isin(top_complaints)]
     #now get the top complaints per borough
     borough_top_complaint_df = filtered_top_complaint_df.groupby(['borough','complaint_type'])[':id'].agg('count')
+    print 'Show Counts of the Top 10 complaints in each borough'
     print borough_top_complaint_df.head()
+
+
+
+    #Problem 2
+    #For the 10 most populous zip codes, how many of each of those 10 types were there in 2017?
+
+    #load a data frame with zipcode population information from the census
+    zipcode_column_types={'Zip Code ZCTA': np.unicode }
+    zipcode_population_df = pd.read_csv('2010_Census_Population_By_Zipcode_ZCTA.csv',dtype=zipcode_column_types).rename(
+                         columns={'Zip Code ZCTA': 'incident_zip','2010 Census Population':'Zip Population'})
+
+    #get distinct nyc zipcodes (might want to replace the with a separate imported dataset)
+    zipcodes = full_df.incident_zip.unique()
+
+    #filter the population data set by the distinct zipcodes to just get nyc populations
+    nyc_zipcode_population_df = zipcode_population_df[zipcode_population_df['incident_zip'].isin(zipcodes)]
+    #print nyc_zipcode_population_df.head()
+
+    #now get the top ten most populous zipcodes from nyc (this might need to be improved to be done outset our complaint set)
+    ten_largest_zipcodes_df = nyc_zipcode_population_df.nlargest(10, 'Zip Population')#.to_dict().keys()
+
+    #now merge the top ten zipcodes set with the top 10 complaint set we previously calculated for problem 1
+    complaints_in_top_zipcodes_df = ten_largest_zipcodes_df.merge(filtered_top_complaint_df[['complaint_type','incident_zip']], on='incident_zip')
+    #now get the aggegate count of complaint type for each of the 10 zipcodes
+    complaints_in_top_zipcodes_agg_df = complaints_in_top_zipcodes_df.groupby(['incident_zip', 'complaint_type']).count()
+    print complaints_in_top_zipcodes_agg_df.head()
 
 if __name__ == "__main__":
     run_exercise()
