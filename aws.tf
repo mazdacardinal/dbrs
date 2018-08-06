@@ -10,6 +10,8 @@ variable "region" {}
 
 variable "vpc_id" {}
 
+variable "keypair_name" {}
+
 provider "aws" {
   access_key = "${var.access_key}"
   secret_key = "${var.secret_key}"
@@ -17,7 +19,7 @@ provider "aws" {
 }
 
 resource "aws_key_pair" "terraform_ec2_key" {
-  key_name = "takehome_ec2_key"
+  key_name = "${var.keypair_name}"
   public_key = "${file("${var.public_key_file}")}"
 }
 
@@ -62,7 +64,7 @@ resource "aws_instance" "dan_takehome" {
   instance_type = "m5.large"
   subnet_id = "${aws_subnet.public_subnet_a.id}"
   vpc_security_group_ids = ["${aws_security_group.allow_web.id}"] 
-  key_name = "takehome_ec2_key"
+  key_name = "${var.keypair_name}"
 
   ebs_block_device {
     device_name = "/dev/sda1"
