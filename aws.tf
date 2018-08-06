@@ -6,9 +6,13 @@ variable "private_key_file" {}
 
 variable "public_key_file" {}
 
-variable "region" {}
+variable "region" {
+  default = "us-east-2"
+}
 
-variable "vpc_id" {}
+variable "vpc_id" {
+  default = "vpc-f3a80d9b"
+}
 
 variable "keypair_name" {}
 
